@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/nlebedevinc/pulse/internal/probe"
@@ -35,7 +34,7 @@ type doneMsg struct{}
 // Model is the Bubble Tea model for a pulse session.
 type Model struct {
 	opts    Options
-	spin    spinner.Model
+	spin    int // current spinner frame
 	checks  *probe.Checks
 	Tracker *stats.Tracker
 	Kind    string
@@ -49,12 +48,8 @@ type Model struct {
 
 // New returns a model ready to run.
 func New(opts Options) *Model {
-	sp := spinner.New()
-	sp.Spinner = spinner.MiniDot
-	sp.Style = dim
 	return &Model{
 		opts:    opts,
-		spin:    sp,
 		Tracker: &stats.Tracker{},
 		width:   80,
 		start:   time.Now(),
@@ -68,7 +63,7 @@ func (m *Model) Elapsed() time.Duration { return time.Since(m.start).Round(time.
 func (m *Model) Checks() *probe.Checks { return m.checks }
 
 func (m *Model) Init() tea.Cmd {
-	return tea.Batch(m.spin.Tick, m.runChecks)
+	return tea.Batch(spinTick(), m.runChecks)
 }
 
 func (m *Model) runChecks() tea.Msg {
@@ -141,10 +136,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stop()
 		return m, tea.Quit
 
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spin, cmd = m.spin.Update(msg)
-		return m, cmd
+	case spinTickMsg:
+		if m.Tracker.Sent() > 0 {
+			return m, nil // probes are flowing; the spinner is off screen
+		}
+		m.spin = (m.spin + 1) % len(spinFrames)
+		return m, spinTick()
 	}
 	return m, nil
 }
@@ -172,7 +169,7 @@ func (m *Model) View() string {
 	b.WriteString(pad.Render(header) + "\n\n")
 
 	if m.checks == nil {
-		b.WriteString(pad.Render(m.spin.View()+" "+dim.Render("running checks…")) + "\n")
+		b.WriteString(pad.Render(dim.Render(spinFrames[m.spin]+" running checks…")) + "\n")
 		return b.String()
 	}
 
@@ -188,7 +185,7 @@ func (m *Model) View() string {
 		b.WriteString(pad.Render(Graph(m.Tracker.Results, gw, graphHeight)) + "\n\n")
 		b.WriteString(pad.Render(m.statsLine()) + "\n\n")
 	} else {
-		b.WriteString(pad.Render(m.spin.View()+" "+dim.Render("probing…")) + "\n\n")
+		b.WriteString(pad.Render(dim.Render(spinFrames[m.spin]+" probing…")) + "\n\n")
 	}
 
 	// checks
