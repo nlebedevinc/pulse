@@ -8,8 +8,6 @@ import (
 	"os"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/nlebedevinc/pulse/internal/ui"
 )
 
@@ -36,7 +34,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	m := ui.New(ui.Options{
+	s, err := ui.Run(ui.Options{
 		Host:     flag.Arg(0),
 		Port:     *port,
 		Interval: *interval,
@@ -44,21 +42,16 @@ func main() {
 		Count:    *count,
 		TCP:      *tcp,
 	})
-
-	p := tea.NewProgram(m)
-	final, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "pulse:", err)
 		os.Exit(1)
 	}
-
-	fm := final.(*ui.Model)
-	if fm.Err != nil {
-		fmt.Fprintln(os.Stderr, "pulse:", fm.Err)
+	if s.Err != nil {
+		fmt.Fprintln(os.Stderr, "pulse:", s.Err)
 		os.Exit(1)
 	}
-	if fm.Checks() != nil {
-		fmt.Print(ui.Summary(fm.Checks(), fm.Tracker, fm.Kind, fm.Elapsed()))
+	if s.Checks() != nil {
+		fmt.Print(ui.Summary(s.Checks(), s.Tracker, s.Kind, s.Elapsed()))
 	}
 }
 

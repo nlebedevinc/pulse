@@ -5,8 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
-
 	"github.com/nlebedevinc/pulse/internal/probe"
 	"github.com/nlebedevinc/pulse/internal/stats"
 )
@@ -43,15 +41,15 @@ func Summary(checks *probe.Checks, t *stats.Tracker, kind string, elapsed time.D
 	return b.String()
 }
 
-func gradeStyle(g stats.Grade) lipgloss.Style {
+func gradeStyle(g stats.Grade) style {
 	switch g {
 	case stats.Excellent:
-		return ok.Bold(true)
+		return okBold
 	case stats.Good:
 		return ok
 	case stats.Degraded:
 		return warn
 	default:
-		return bad.Bold(true)
+		return badBold
 	}
 }

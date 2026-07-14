@@ -3,8 +3,6 @@ package ui
 import (
 	"fmt"
 	"time"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 // fmtMs renders a duration in milliseconds: one decimal under 100ms,
@@ -21,7 +19,7 @@ func fmtLoss(loss float64) string {
 	return fmt.Sprintf("%.0f%%", loss*100)
 }
 
-func lossStyle(loss float64) lipgloss.Style {
+func lossStyle(loss float64) style {
 	switch {
 	case loss > 0.05:
 		return bad
