@@ -114,9 +114,10 @@ make test    # run tests
 make vet     # static analysis
 ```
 
-Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea),
-[Lip Gloss](https://github.com/charmbracelet/lipgloss) and
-[pro-bing](https://github.com/prometheus-community/pro-bing).
+The TUI is a hand-rolled ANSI renderer — the only dependencies are
+[pro-bing](https://github.com/prometheus-community/pro-bing) for ICMP and
+`golang.org/x/term` for raw terminal mode, keeping the stripped binary
+around 5 MB.
 
 ## License
 
