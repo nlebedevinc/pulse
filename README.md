@@ -1,11 +1,20 @@
+<div align="center">
+
 # pulse
 
-> Validate a connection, watch it live, get a verdict.
+**Validate a connection, watch it live, get a verdict.**
 
-`pulse` is a minimal terminal tool that answers the question *"is my connection
-actually fine?"* — the way `tailscale netcheck` validates a path, with the live
-feedback of `ping` and a graph you can read at a glance. When you stop it, you
-get a clean summary with an honest verdict.
+[![CI](https://github.com/nlebedevinc/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/nlebedevinc/pulse/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nlebedevinc/pulse)](https://goreportcard.com/report/github.com/nlebedevinc/pulse)
+[![Release](https://img.shields.io/github/v/release/nlebedevinc/pulse)](https://github.com/nlebedevinc/pulse/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+</div>
+
+`pulse` is a minimal terminal tool for answering one question: *is my
+connection actually fine?* It validates every layer of the path to a host —
+DNS, TCP, TLS, HTTP — then probes continuously with a live latency graph, and
+ends with an honest, evidence-based verdict.
 
 ```
   pulse  google.com (142.250.217.238) · icmp · 1s
@@ -30,24 +39,60 @@ pulse summary — google.com (142.250.217.238)
   verdict: degraded — intermittent packet loss
 ```
 
-## Why not just ping?
+## Contents
 
-`ping` tells you a host replies. `pulse` tells you whether the *path* works:
+- [Features](#features)
+- [Why pulse?](#why-pulse)
+- [Installation](#installation)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
 
-- **Layered checks up front** — DNS resolution, TCP connect, TLS handshake
-  (protocol + certificate expiry) and HTTP time-to-first-byte, each timed
-  individually. When something is broken, you see *which layer*.
-- **A live RTT graph** — latency spikes and timeouts (`×`) are visible as they
-  happen, not buried in scrollback.
-- **Jitter and percentiles** — `p95` and jitter matter more than average
-  latency for calls, gaming and SSH. `ping` gives you neither.
-- **A verdict** — the run ends with `excellent / good / degraded / poor` and a
-  reason, graded primarily on loss and jitter (what actually hurts interactive
-  traffic), then latency.
+## Features
 
-## Install
+- **Layered connection checks** — DNS resolution, TCP connect, TLS handshake
+  (protocol version and certificate expiry) and HTTP time-to-first-byte, each
+  timed individually. When something is broken, pulse shows *which layer*.
+- **Live RTT graph** — a compact in-terminal chart where latency spikes and
+  timeouts (`×`) are visible the moment they happen.
+- **Statistics that matter** — jitter and p95 alongside min/avg/max, because
+  tail latency is what actually hurts calls, gaming and SSH sessions.
+- **Precise loss accounting** — every probe is individually timed out, so
+  packet loss is exact, not inferred.
+- **A verdict** — every run ends with `excellent / good / degraded / poor`
+  and the reason, so the result can go straight into a bug report.
+- **Minimal by design** — a single static binary around 5 MB, two direct
+  dependencies, no configuration files, and plain ANSI colors that inherit
+  your terminal theme.
 
-### go install
+## Why pulse?
+
+`ping` proves a host replies. `pulse` proves the *path* works — name
+resolution, the transport handshake, the TLS session and the first HTTP byte
+— and quantifies how well, over time, with the numbers that predict real
+application behavior.
+
+| | `ping` | `pulse` |
+|---|:---:|:---:|
+| Reachability | ✓ | ✓ |
+| DNS / TCP / TLS / HTTP timing | — | ✓ |
+| Live latency graph | — | ✓ |
+| Jitter and percentiles | — | ✓ |
+| Per-probe timeout and loss accounting | — | ✓ |
+| End-of-run quality verdict | — | ✓ |
+
+### When plain `ping` is the better tool
+
+In the spirit of honesty: `ping` is preinstalled everywhere, weighs a few
+hundred kilobytes, and is the right choice for scripting, flood testing, or
+environments where installing binaries isn't an option. `pulse` is for the
+interactive moments — debugging a flaky call, validating a new network,
+proving to your ISP that the problem is real.
+
+## Installation
+
+### Go
 
 ```sh
 go install github.com/nlebedevinc/pulse@latest
@@ -61,7 +106,14 @@ cd pulse
 make install
 ```
 
-Requires Go 1.25+.
+Requires Go 1.25 or later. `make install` produces a smaller binary than
+plain `go install` (symbols stripped, inlining disabled).
+
+### Pre-built binaries
+
+Download the archive for your platform from the
+[releases page](https://github.com/nlebedevinc/pulse/releases), extract it,
+and place `pulse` on your `PATH`.
 
 ## Usage
 
@@ -85,39 +137,51 @@ Quit with `q`, `esc` or `ctrl+c` — the summary prints either way.
 
 ## How it works
 
-1. **Checks** — on startup, pulse resolves the host (preferring IPv4), opens a
-   TCP connection, performs a TLS handshake and times an HTTP request to first
-   byte. Each step is reported independently; later steps are skipped when an
-   earlier one fails. TLS/HTTP checks only run when the port is 443.
-2. **Probes** — one ICMP echo per interval against the resolved address, each
-   individually timed out, so packet loss is accounted for precisely.
-3. **Verdict** — loss > 5% is `poor`, any loss or jitter > 50ms is `degraded`;
+1. **Checks.** On startup, pulse resolves the host (preferring IPv4), opens a
+   TCP connection, performs a TLS handshake and times an HTTP request to
+   first byte. Each step is reported independently; later steps are skipped
+   when an earlier one fails. TLS and HTTP checks only run when the port
+   is 443.
+2. **Probes.** One ICMP echo per interval against the resolved address, each
+   with its own timeout, so loss is accounted for exactly. If ICMP sockets
+   are unavailable, pulse falls back to TCP probing automatically and says so
+   in the footer.
+3. **Verdict.** Loss and jitter dominate the grade because they hurt
+   interactive traffic more than raw latency does: loss above 5% is `poor`;
+   any loss, jitter above 50ms or average latency above 300ms is `degraded`;
    an otherwise clean run is graded `excellent` or `good` by latency.
 
-### ICMP permissions
+## Troubleshooting
 
-pulse uses unprivileged ICMP datagram sockets — no root needed on **macOS**.
-On **Linux**, allow them once with:
+**ICMP permission errors on Linux.** pulse uses unprivileged ICMP datagram
+sockets — no root required on macOS. On Linux, allow them once with:
 
 ```sh
 sudo sysctl -w net.ipv4.ping_group_range="0 2147483647"
 ```
 
-If ICMP is unavailable, pulse automatically falls back to TCP probing and says
-so in the footer. You can also force it with `--tcp`.
+Or skip ICMP entirely with `--tcp`.
 
-## Development
+**"needs an interactive terminal".** pulse is an interactive tool and
+requires a TTY; it does not support being piped or run from cron. For
+scriptable output, run with `-c` and capture the summary it prints on exit.
+
+**The HTTP check shows `301`.** That's the site redirecting `/` — the check
+reports the first response without following redirects, which is exactly the
+timing you care about.
+
+## Contributing
+
+Contributions are welcome. Before opening a pull request:
 
 ```sh
-make build   # build ./pulse
-make test    # run tests
-make vet     # static analysis
+make test   # unit tests
+make vet    # static analysis
+make build  # release-equivalent build
 ```
 
-The TUI is a hand-rolled ANSI renderer — the only dependencies are
-[pro-bing](https://github.com/prometheus-community/pro-bing) for ICMP and
-`golang.org/x/term` for raw terminal mode, keeping the stripped binary
-around 5 MB.
+Please keep the tool's scope minimal — new flags and features should earn
+their place.
 
 ## License
 
