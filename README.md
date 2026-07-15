@@ -1,15 +1,6 @@
-<div align="center">
-
 # pulse
 
 **Validate a connection, watch it live, get a verdict.**
-
-[![CI](https://github.com/nlebedevinc/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/nlebedevinc/pulse/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/nlebedevinc/pulse)](https://goreportcard.com/report/github.com/nlebedevinc/pulse)
-[![Release](https://img.shields.io/github/v/release/nlebedevinc/pulse)](https://github.com/nlebedevinc/pulse/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-</div>
 
 `pulse` is a minimal terminal tool for answering one question: *is my
 connection actually fine?* It validates every layer of the path to a host —
