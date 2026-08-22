@@ -1,0 +1,124 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # One binary per architecture. Linux binaries are built against glibc 2.17
+  # (RHEL 7 era) so a single artifact runs on Ubuntu, Fedora, Arch and friends
+  # regardless of how new their glibc is.
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            zig: ".2.17"
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            zig: ".2.17"
+          # Fully static, for Alpine and other musl systems.
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cargo-zigbuild
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
+      - name: Build
+        env:
+          PULSE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            cargo zigbuild --release --target ${{ matrix.target }}${{ matrix.zig }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+
+      - name: Package
+        run: |
+          bin=target/${{ matrix.target }}/release/pulse
+          chmod +x "$bin"
+          tar -czf pulse-${{ matrix.target }}.tar.gz -C "$(dirname "$bin")" pulse
+          # sha256sum on Linux, shasum on macOS
+          if command -v sha256sum >/dev/null; then
+            sha256sum pulse-${{ matrix.target }}.tar.gz > pulse-${{ matrix.target }}.tar.gz.sha256
+          else
+            shasum -a 256 pulse-${{ matrix.target }}.tar.gz > pulse-${{ matrix.target }}.tar.gz.sha256
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-${{ matrix.target }}
+          path: pulse-${{ matrix.target }}.tar.gz*
+          if-no-files-found: error
+
+  # Proves the single glibc binary actually runs on each distro we claim to
+  # support, rather than assuming it does.
+  verify:
+    name: run on ${{ matrix.image }}
+    needs: build
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - ubuntu:20.04 # oldest glibc the runner's node still supports (2.31)
+          - ubuntu:latest
+          - debian:12
+          - fedora:latest
+          - archlinux:latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pulse-x86_64-unknown-linux-gnu
+
+      - name: Unpack and run
+        run: |
+          tar -xzf pulse-x86_64-unknown-linux-gnu.tar.gz
+          ./pulse --version
+          # pulse needs a TTY, so a probe run cannot work here; exercising
+          # --version proves the binary loads and every symbol resolves.
+          ldd ./pulse || true
+
+  release:
+    needs: [build, verify]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
