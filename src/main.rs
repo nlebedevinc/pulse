@@ -4,6 +4,7 @@
 // Layers are ported bottom-up; drop this once the ui layer wires them together.
 #![allow(dead_code)]
 
+mod checks;
 mod probe;
 mod stats;
 mod ui;
