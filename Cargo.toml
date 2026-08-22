@@ -8,6 +8,7 @@ repository = "https://github.com/nlebedevinc/pulse"
 license = "MIT"
 
 [dependencies]
+socket2 = "0.5"
 
 [profile.release]
 opt-level = "z"     # optimize for size, not speed; pulse is I/O-bound
