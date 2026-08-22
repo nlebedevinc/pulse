@@ -1,6 +1,7 @@
 //! ANSI SGR styles. Basic colors only, so pulse inherits the user's
 //! terminal theme.
 
+#[derive(Clone, Copy)]
 pub struct Style(&'static str);
 
 pub const BRAND: Style = Style("1;34"); // bold blue
