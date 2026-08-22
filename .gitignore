@@ -2,14 +2,29 @@
 /pulse
 /dist/
 *.exe
+*.dll
+*.so
+*.dylib
 
 # Go
 *.test
 *.out
 coverage.txt
+coverage.html
+go.work
+go.work.sum
+
+# Rust
+/target/
+**/*.rs.bk
+
+# Environment
+.env
 
 # Editors
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
 .DS_Store
