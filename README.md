@@ -1,11 +1,13 @@
 # pulse
 
+[![ci](https://github.com/nlebedevinc/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/nlebedevinc/pulse/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Validate a connection, watch it live, get a verdict.**
 
-`pulse` is a minimal terminal tool for answering one question: *is my
-connection actually fine?* It validates every layer of the path to a host —
-DNS, TCP, TLS, HTTP — then probes continuously with a live latency graph, and
-ends with an honest, evidence-based verdict.
+`pulse` answers one question: *is my connection actually fine?* It checks every
+layer of the path to a host — DNS, TCP, TLS, HTTP — then probes continuously
+with a live latency graph, and ends with an honest, evidence-based verdict.
 
 ```
   pulse  google.com (142.250.217.238) · icmp · 1s
@@ -21,7 +23,7 @@ ends with an honest, evidence-based verdict.
   q quit · 34 probes · 34s
 ```
 
-On exit:
+On exit it prints a summary you can paste straight into a bug report:
 
 ```
 pulse summary — google.com (142.250.217.238)
@@ -30,149 +32,77 @@ pulse summary — google.com (142.250.217.238)
   verdict: degraded — intermittent packet loss
 ```
 
-## Contents
+## Why pulse
 
-- [Features](#features)
-- [Why pulse?](#why-pulse)
-- [Installation](#installation)
-- [Usage](#usage)
-- [How it works](#how-it-works)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+`ping` proves a host replies. `pulse` proves the *path* works — and tells you
+which part of it doesn't.
 
-## Features
+- **It shows which layer broke.** "DNS resolved but the TLS handshake failed"
+  is a different problem from "host unreachable", and it's the first thing
+  worth knowing during an outage.
+- **It measures what actually hurts.** Jitter and p95, not just an average.
+  Tail latency and variance are what wreck calls, gaming and SSH; a mean
+  figure hides both.
+- **It reaches a conclusion.** Every run ends in `excellent / good / degraded
+  / poor` with a reason — so the result means something to someone who doesn't
+  read latency graphs for a living.
 
-- **Layered connection checks** — DNS resolution, TCP connect, TLS handshake
-  (protocol version and certificate expiry) and HTTP time-to-first-byte, each
-  timed individually. When something is broken, pulse shows *which layer*.
-- **Live RTT graph** — a compact in-terminal chart where latency spikes and
-  timeouts (`×`) are visible the moment they happen.
-- **Statistics that matter** — jitter and p95 alongside min/avg/max, because
-  tail latency is what actually hurts calls, gaming and SSH sessions.
-- **Precise loss accounting** — every probe is individually timed out, so
-  packet loss is exact, not inferred.
-- **A verdict** — every run ends with `excellent / good / degraded / poor`
-  and the reason, so the result can go straight into a bug report.
-- **Minimal by design** — a single static binary around 5 MB, two direct
-  dependencies, no configuration files, and plain ANSI colors that inherit
-  your terminal theme.
+|                               | `ping` | `pulse` |
+|-------------------------------|:------:|:-------:|
+| DNS / TCP / TLS / HTTP timing  |   —    |    ✓    |
+| Live latency graph             |   —    |    ✓    |
+| Jitter and percentiles         |   —    |    ✓    |
+| End-of-run quality verdict     |   —    |    ✓    |
 
-## Why pulse?
+Reach for it when a call keeps dropping, when you're sizing up unfamiliar
+Wi-Fi, or when you need to show an ISP the problem is real. For scripting,
+flood testing, or anywhere you can't install a binary, plain `ping` remains
+the better tool.
 
-`ping` proves a host replies. `pulse` proves the *path* works — name
-resolution, the transport handshake, the TLS session and the first HTTP byte
-— and quantifies how well, over time, with the numbers that predict real
-application behavior.
+## Install
 
-| | `ping` | `pulse` |
-|---|:---:|:---:|
-| Reachability | ✓ | ✓ |
-| DNS / TCP / TLS / HTTP timing | — | ✓ |
-| Live latency graph | — | ✓ |
-| Jitter and percentiles | — | ✓ |
-| Per-probe timeout and loss accounting | — | ✓ |
-| End-of-run quality verdict | — | ✓ |
-
-### When plain `ping` is the better tool
-
-In the spirit of honesty: `ping` is preinstalled everywhere, weighs a few
-hundred kilobytes, and is the right choice for scripting, flood testing, or
-environments where installing binaries isn't an option. `pulse` is for the
-interactive moments — debugging a flaky call, validating a new network,
-proving to your ISP that the problem is real.
-
-## Installation
-
-### Go
+Pre-built binaries for macOS and Linux are on the
+[releases page](https://github.com/nlebedevinc/pulse/releases), or build from
+source with Rust 1.75 or later:
 
 ```sh
-go install github.com/nlebedevinc/pulse@latest
+cargo install --git https://github.com/nlebedevinc/pulse
 ```
 
-### From source
-
-```sh
-git clone https://github.com/nlebedevinc/pulse.git
-cd pulse
-make install
-```
-
-Requires Go 1.25 or later. `make install` produces a smaller binary than
-plain `go install` (symbols stripped, inlining disabled).
-
-### Pre-built binaries
-
-Download the archive for your platform from the
-[releases page](https://github.com/nlebedevinc/pulse/releases), extract it,
-and place `pulse` on your `PATH`.
+A single 1.1 MB binary — no runtime, no config files, nothing to set up.
 
 ## Usage
 
 ```sh
-pulse google.com            # probe with icmp, checks against :443
+pulse google.com            # icmp probes, checks against :443
 pulse -c 60 1.1.1.1         # stop automatically after 60 probes
 pulse -i 200ms 10.0.0.1     # probe 5× per second
-pulse --tcp -p 22 my-server # probe a specific tcp port instead of icmp
+pulse --tcp -p 22 my-server # probe a tcp port instead of icmp
 ```
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-c` | `0` | Stop after this many probes (`0` = until interrupted) |
-| `-i` | `1s` | Time between probes |
-| `-t` | `2s` | Per-probe timeout |
-| `-p` | `443` | Port used for TCP probes and the connect/TLS/HTTP checks |
-| `--tcp` | `false` | Probe with TCP connects instead of ICMP |
-| `--version` | | Print version and exit |
+Quit with `q`, `esc` or `ctrl+c` — the summary prints either way. Run
+`pulse --help` for the full flag list.
 
-Quit with `q`, `esc` or `ctrl+c` — the summary prints either way.
+## Notes
 
-## How it works
+Loss and jitter dominate the verdict because they hurt interactive traffic
+more than raw latency does. TLS and HTTP checks run only when the port is 443.
 
-1. **Checks.** On startup, pulse resolves the host (preferring IPv4), opens a
-   TCP connection, performs a TLS handshake and times an HTTP request to
-   first byte. Each step is reported independently; later steps are skipped
-   when an earlier one fails. TLS and HTTP checks only run when the port
-   is 443.
-2. **Probes.** One ICMP echo per interval against the resolved address, each
-   with its own timeout, so loss is accounted for exactly. If ICMP sockets
-   are unavailable, pulse falls back to TCP probing automatically and says so
-   in the footer.
-3. **Verdict.** Loss and jitter dominate the grade because they hurt
-   interactive traffic more than raw latency does: loss above 5% is `poor`;
-   any loss, jitter above 50ms or average latency above 300ms is `degraded`;
-   an otherwise clean run is graded `excellent` or `good` by latency.
+Routers routinely deprioritise ICMP, so `ping`-style latency can read far
+worse than the traffic you actually care about. If the numbers look
+implausible, compare against `--tcp`.
 
-## Troubleshooting
-
-**ICMP permission errors on Linux.** pulse uses unprivileged ICMP datagram
-sockets — no root required on macOS. On Linux, allow them once with:
+pulse is interactive and needs a TTY. On Linux, unprivileged ICMP sockets may
+need enabling once — or just use `--tcp`:
 
 ```sh
 sudo sysctl -w net.ipv4.ping_group_range="0 2147483647"
 ```
 
-Or skip ICMP entirely with `--tcp`.
-
-**"needs an interactive terminal".** pulse is an interactive tool and
-requires a TTY; it does not support being piped or run from cron. For
-scriptable output, run with `-c` and capture the summary it prints on exit.
-
-**The HTTP check shows `301`.** That's the site redirecting `/` — the check
-reports the first response without following redirects, which is exactly the
-timing you care about.
-
 ## Contributing
 
-Contributions are welcome. Before opening a pull request:
-
-```sh
-make test   # unit tests
-make vet    # static analysis
-make build  # release-equivalent build
-```
-
-Please keep the tool's scope minimal — new flags and features should earn
-their place.
+Run `make test`, `make vet` and `make build` before opening a pull request.
+Please keep the tool's scope minimal — new flags should earn their place.
 
 ## License
 
