@@ -1,0 +1,17 @@
+[package]
+name = "pulse"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Validate a connection, watch it live, get a verdict."
+repository = "https://github.com/nlebedevinc/pulse"
+license = "MIT"
+
+[dependencies]
+
+[profile.release]
+opt-level = "z"     # optimize for size, not speed; pulse is I/O-bound
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
