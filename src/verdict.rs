@@ -46,7 +46,10 @@ impl Tracker {
             (Grade::Degraded, "unstable latency")
         } else if avg > Duration::from_millis(300) {
             (Grade::Degraded, "very high latency")
-        } else if loss > 0.0 || jitter > Duration::from_millis(20) || avg > Duration::from_millis(150) {
+        } else if loss > 0.0
+            || jitter > Duration::from_millis(20)
+            || avg > Duration::from_millis(150)
+        {
             (Grade::Good, "stable with minor variance")
         } else {
             (Grade::Excellent, "stable, low latency")

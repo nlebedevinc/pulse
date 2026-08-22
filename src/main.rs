@@ -122,7 +122,14 @@ fn parse_args() -> Result<Option<Options>, String> {
     }
 
     let host = host.ok_or_else(String::new)?;
-    Ok(Some(Options { host, port, interval, timeout, count, tcp }))
+    Ok(Some(Options {
+        host,
+        port,
+        interval,
+        timeout,
+        count,
+        tcp,
+    }))
 }
 
 /// Phrased like Go's flag package.

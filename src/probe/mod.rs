@@ -27,7 +27,11 @@ pub struct Sample {
 impl Sample {
     /// A probe that got a reply in `rtt`.
     pub fn reply(seq: usize, rtt: Duration) -> Self {
-        Self { seq, rtt: Some(rtt), failure: None }
+        Self {
+            seq,
+            rtt: Some(rtt),
+            failure: None,
+        }
     }
 
     /// A probe that timed out.
@@ -37,9 +41,12 @@ impl Sample {
 
     /// A probe that failed for a specific reason.
     pub fn failed(seq: usize, failure: Failure) -> Self {
-        Self { seq, rtt: None, failure: Some(failure) }
+        Self {
+            seq,
+            rtt: None,
+            failure: Some(failure),
+        }
     }
-
 }
 
 /// Sends one probe per call.

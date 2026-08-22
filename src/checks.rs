@@ -18,13 +18,31 @@ pub struct Check {
 
 impl Check {
     fn ok(name: &'static str, dur: Duration, detail: String) -> Self {
-        Self { name, ok: true, skipped: false, dur, detail }
+        Self {
+            name,
+            ok: true,
+            skipped: false,
+            dur,
+            detail,
+        }
     }
     fn failed(name: &'static str, dur: Duration, detail: String) -> Self {
-        Self { name, ok: false, skipped: false, dur, detail }
+        Self {
+            name,
+            ok: false,
+            skipped: false,
+            dur,
+            detail,
+        }
     }
     fn skipped(name: &'static str, detail: &str) -> Self {
-        Self { name, ok: false, skipped: true, dur: Duration::ZERO, detail: detail.into() }
+        Self {
+            name,
+            ok: false,
+            skipped: true,
+            dur: Duration::ZERO,
+            detail: detail.into(),
+        }
     }
 }
 
@@ -40,7 +58,11 @@ pub struct Checks {
 /// when an earlier one fails. `port` is used for the TCP check; TLS and HTTP
 /// run only against 443.
 pub fn run_checks(host: &str, port: u16, timeout: Duration) -> Checks {
-    let mut c = Checks { target: host.into(), ip: None, items: Vec::new() };
+    let mut c = Checks {
+        target: host.into(),
+        ip: None,
+        items: Vec::new(),
+    };
 
     // dns
     if let Ok(ip) = host.parse::<IpAddr>() {
@@ -129,7 +151,11 @@ fn resolve(host: &str, timeout: Duration) -> io::Result<Vec<IpAddr>> {
 
 /// Prefers an IPv4 address so ICMP works consistently.
 fn pick(addrs: &[IpAddr]) -> IpAddr {
-    addrs.iter().find(|a| a.is_ipv4()).copied().unwrap_or(addrs[0])
+    addrs
+        .iter()
+        .find(|a| a.is_ipv4())
+        .copied()
+        .unwrap_or(addrs[0])
 }
 
 fn join_ips(addrs: &[IpAddr]) -> String {
@@ -196,7 +222,10 @@ fn tls_handshake(host: &str, ip: IpAddr, timeout: Duration) -> io::Result<String
         }
         if conn.wants_read() {
             if conn.read_tls(&mut sock)? == 0 {
-                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "connection closed"));
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "connection closed",
+                ));
             }
             conn.process_new_packets()
                 .map_err(|e| io::Error::other(e.to_string()))?;
@@ -237,7 +266,8 @@ fn http_head(host: &str, ip: IpAddr, timeout: Duration) -> io::Result<(u16, Dura
     let start = Instant::now();
     let (mut conn, mut sock) = connect_tls(host, ip, timeout)?;
     let mut tls = rustls::Stream::new(&mut conn, &mut sock);
-    let req = format!("GET / HTTP/1.1\r\nHost: {host}\r\nUser-Agent: pulse\r\nConnection: close\r\n\r\n");
+    let req =
+        format!("GET / HTTP/1.1\r\nHost: {host}\r\nUser-Agent: pulse\r\nConnection: close\r\n\r\n");
     tls.write_all(req.as_bytes())?;
     tls.flush()?;
 

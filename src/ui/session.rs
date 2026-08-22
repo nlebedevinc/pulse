@@ -276,10 +276,9 @@ fn view(s: &Session) -> String {
     b.push_str("\n\n");
 
     let Some(checks) = s.checks.as_ref() else {
-        b.push_str(&indent(&DIM.render(&format!(
-            "{} running checks…",
-            SPIN_FRAMES[s.spin]
-        ))));
+        b.push_str(&indent(
+            &DIM.render(&format!("{} running checks…", SPIN_FRAMES[s.spin])),
+        ));
         b.push('\n');
         return b;
     };
@@ -292,10 +291,9 @@ fn view(s: &Session) -> String {
         b.push_str(&indent(&stats_line(s)));
         b.push_str("\n\n");
     } else {
-        b.push_str(&indent(&DIM.render(&format!(
-            "{} probing…",
-            SPIN_FRAMES[s.spin]
-        ))));
+        b.push_str(&indent(
+            &DIM.render(&format!("{} probing…", SPIN_FRAMES[s.spin])),
+        ));
         b.push_str("\n\n");
     }
 
@@ -319,7 +317,11 @@ fn stats_line(s: &Session) -> String {
         format!("{}{}", DIM.render("min "), VALUE.render(&fmt_ms(t.min()))),
         format!("{}{}", DIM.render("avg "), VALUE.render(&fmt_ms(t.avg()))),
         format!("{}{}", DIM.render("max "), VALUE.render(&fmt_ms(t.max()))),
-        format!("{}{}", DIM.render("jitter "), VALUE.render(&fmt_ms(t.jitter()))),
+        format!(
+            "{}{}",
+            DIM.render("jitter "),
+            VALUE.render(&fmt_ms(t.jitter()))
+        ),
         format!(
             "{}{}",
             DIM.render("loss "),
@@ -337,10 +339,7 @@ fn footer(s: &Session) -> String {
         if s.opts.count > 0 {
             count.push_str(&format!("/{}", s.opts.count));
         }
-        f.push_str(&DIM.render(&format!(
-            " · {count} probes · {}",
-            fmt_secs(s.elapsed())
-        )));
+        f.push_str(&DIM.render(&format!(" · {count} probes · {}", fmt_secs(s.elapsed()))));
     }
     if let Some(note) = &s.note {
         f.push('\n');

@@ -138,11 +138,7 @@ mod tests {
         let rs = samples(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let g = plain(&graph(&rs, 4, 2));
         let rows: Vec<&str> = g.split('\n').collect();
-        assert_eq!(
-            rows[0].chars().count(),
-            4,
-            "window trims old samples"
-        );
+        assert_eq!(rows[0].chars().count(), 4, "window trims old samples");
     }
 
     #[test]

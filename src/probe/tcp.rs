@@ -16,7 +16,11 @@ pub struct Tcp {
 impl Tcp {
     /// Returns a TCP prober for an already-resolved address and port.
     pub fn new(ip: IpAddr, port: u16, timeout: Duration) -> Self {
-        Self { addr: SocketAddr::new(ip, port), port, timeout }
+        Self {
+            addr: SocketAddr::new(ip, port),
+            port,
+            timeout,
+        }
     }
 }
 

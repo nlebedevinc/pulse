@@ -73,7 +73,13 @@ impl Tracker {
         let sum: Duration = self
             .rtts
             .windows(2)
-            .map(|w| if w[1] > w[0] { w[1] - w[0] } else { w[0] - w[1] })
+            .map(|w| {
+                if w[1] > w[0] {
+                    w[1] - w[0]
+                } else {
+                    w[0] - w[1]
+                }
+            })
             .sum();
         sum / (self.rtts.len() - 1) as u32
     }
@@ -146,7 +152,12 @@ mod tests {
             ("clean and fast", &[20, 21, 19, 20], 0, Grade::Excellent),
             ("high but stable", &[200, 201, 199, 200], 0, Grade::Good),
             ("heavy loss", &[20, 20, 20, 20], 1, Grade::Poor),
-            ("very high latency", &[400, 401, 399, 400], 0, Grade::Degraded),
+            (
+                "very high latency",
+                &[400, 401, 399, 400],
+                0,
+                Grade::Degraded,
+            ),
         ];
         for &(name, rtts, lost, want) in cases {
             assert_eq!(track(rtts, lost).verdict().0, want, "{name}");

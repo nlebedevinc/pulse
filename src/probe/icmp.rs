@@ -26,7 +26,11 @@ pub struct Icmp {
 impl Icmp {
     /// Returns an ICMP prober for an already-resolved address.
     pub fn new(ip: IpAddr, timeout: Duration) -> Self {
-        Self { ip, timeout, id: std::process::id() as u16 }
+        Self {
+            ip,
+            timeout,
+            id: std::process::id() as u16,
+        }
     }
 
     /// Sends one echo request and waits for the matching reply.
@@ -144,7 +148,10 @@ fn checksum(b: &[u8]) -> u16 {
 }
 
 fn would_block(e: &io::Error) -> bool {
-    matches!(e.kind(), io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut)
+    matches!(
+        e.kind(),
+        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+    )
 }
 
 #[cfg(test)]
