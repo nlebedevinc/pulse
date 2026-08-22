@@ -6,17 +6,11 @@
 *.so
 *.dylib
 
-# Go
-*.test
-*.out
-coverage.txt
-coverage.html
-go.work
-go.work.sum
-
 # Rust
 /target/
 **/*.rs.bk
+coverage.txt
+coverage.html
 
 # Environment
 .env
