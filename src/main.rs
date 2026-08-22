@@ -6,6 +6,7 @@
 
 mod probe;
 mod stats;
+mod ui;
 mod verdict;
 
 fn main() {}
