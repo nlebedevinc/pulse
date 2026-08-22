@@ -13,7 +13,6 @@ pub enum Failure {
     Timeout,
     /// The probe socket is unavailable; callers should fall back to TCP.
     Permission,
-    Other,
 }
 
 /// The outcome of a single probe.
@@ -41,10 +40,6 @@ impl Sample {
         Self { seq, rtt: None, failure: Some(failure) }
     }
 
-    /// Reports whether the probe got no reply.
-    pub fn is_lost(&self) -> bool {
-        self.rtt.is_none()
-    }
 }
 
 /// Sends one probe per call.

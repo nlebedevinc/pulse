@@ -15,6 +15,19 @@ pub fn fmt_ms(d: Duration) -> String {
     }
 }
 
+/// Renders a whole-second duration the way Go's Duration.String does:
+/// "34s", "1m2s", "1h2m3s".
+pub fn fmt_secs(d: Duration) -> String {
+    let s = d.as_secs();
+    if s < 60 {
+        format!("{s}s")
+    } else if s < 3600 {
+        format!("{}m{}s", s / 60, s % 60)
+    } else {
+        format!("{}h{}m{}s", s / 3600, (s % 3600) / 60, s % 60)
+    }
+}
+
 pub fn fmt_loss(loss: f64) -> String {
     format!("{:.0}%", loss * 100.0)
 }

@@ -247,6 +247,7 @@ dependencies = [
 name = "pulse"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "rustls",
  "rustls-native-certs",
  "socket2",
