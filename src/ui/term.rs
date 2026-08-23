@@ -16,7 +16,10 @@ extern "C" fn on_winch(_: libc::c_int) {
 
 /// Starts delivering SIGWINCH into [`take_resize`].
 pub fn notify_resize() {
-    unsafe { libc::signal(libc::SIGWINCH, on_winch as libc::sighandler_t) };
+    // Cast via a pointer: casting a function item straight to an integer is
+    // rejected by the function_casts_as_integer lint.
+    let handler = on_winch as extern "C" fn(libc::c_int) as *const () as libc::sighandler_t;
+    unsafe { libc::signal(libc::SIGWINCH, handler) };
 }
 
 /// Reports whether the terminal was resized since the last call.
