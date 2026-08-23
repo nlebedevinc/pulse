@@ -1,0 +1,5 @@
+# Pinned so CI is reproducible and new upstream lints can't break the build
+# unannounced. Bump deliberately, and run `make vet` locally after doing so.
+[toolchain]
+channel = "1.98.0"
+components = ["clippy", "rustfmt"]

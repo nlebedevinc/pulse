@@ -35,9 +35,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      # rust-toolchain.toml pins the version; add the cross target to it.
+      - run: |
+          rustup show
+          rustup target add ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
